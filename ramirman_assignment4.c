@@ -70,36 +70,36 @@ bool run_builin(struct command_line *cmd)
         return false;
     }
 
-    if (strcmp(cmd->argv[0], "exit") == 0)      // Handles exit command
+    if (strcmp(cmd->argv[0], "exit") == 0)      // Handles exit command, checks for "exit" input
     {
         exit(0);
     }
 
-    if (strcmp(cmd->argv[0], "cd") == 0)
+    if (strcmp(cmd->argv[0], "cd") == 0)        // Executes cd command, checks for "cd" input
     {
-        char *path = (cmd->argc > 1) ? cmd->argv[1] : getenv("HOME");
+        char *path = (cmd->argc > 1) ? cmd->argv[1] : getenv("HOME");       // Uses the given directory or goes to HOME if none input
         
-        if (chdir(path) != 0)
+        if (chdir(path) != 0)       // Changes working directory
         {
-            perror("cd");
+            perror("cd");           // prints error if fails
         }
         return true;
     }
 
-    if (strcmp(cmd->argv[0], "status") == 0)
+    if (strcmp(cmd->argv[0], "status") == 0)        // Handles status command, checks for "status" input
     {
-        if (WIFEXITED(last_status))
+        if (WIFEXITED(last_status))                 // Uses last_status which has last foreground process exit status 
         {
-            printf("exit value %d\n", WEXITSTATUS(last_status));
+            printf("exit value %d\n", WEXITSTATUS(last_status));        // Prints if exited normally
         }
         else
         {
-            printf("terminated by signal %d\n", WTERMSIG(last_status));
+            printf("terminated by signal %d\n", WTERMSIG(last_status));     // Prints signal if terminated by a signal
         }
         fflush(stdout);
         return true;
     }
-    return false;
+    return false;       // Returns false for non-built-in commands
 }
 
 int main()
