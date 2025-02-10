@@ -63,7 +63,7 @@ struct command_line *parse_input()
 
 
 // Function to help run built-in commands
-bool run_builin(struct command_line *cmd)
+bool run_builtin(struct command_line *cmd)
 {
     if (cmd->argc == 0)     // Returns false if no command is input
     {
@@ -102,6 +102,8 @@ bool run_builin(struct command_line *cmd)
     return false;       // Returns false for non-built-in commands
 }
 
+
+
 int main()
 {
 	struct command_line *curr_command;
@@ -117,7 +119,7 @@ int main()
         }
 
         // Runs built in commands
-        if (!run_builin(curr_command))
+        if (!run_builtin(curr_command))
         {
             printf("Executing external command: %s\n", curr_command->argv[0]);
         }
