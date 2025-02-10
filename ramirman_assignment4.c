@@ -33,7 +33,7 @@ struct command_line *parse_input()
 	fgets(input, INPUT_LENGTH, stdin);
 
     // Ignore empty and comment lines
-    if (input[0] == 'n' || input[0] == '#')
+    if (input[0] == '\n' || input[0] == '#' || strlen(input) == 0)
     {
         free(curr_command);
         return NULL;
