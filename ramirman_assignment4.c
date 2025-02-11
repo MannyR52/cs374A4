@@ -12,6 +12,9 @@
 
 int last_status = 0;                // Variable to track last fg process status
 
+pid_t bg_pids[MAX_ARGS];            // Tracks background process PIDs
+int bg_pid_count = 0;
+
 // Structure holds parsed command info (from provided sample_parser code)
 struct command_line
 {
@@ -161,7 +164,6 @@ void execute_other_commands(struct command_line *cmd)
             dup2(dev_null, 1);
             close(dev_null);
         }
-        
 
         execvp(cmd->argv[0], cmd->argv);        // Execute command
         fprintf(stderr, "%s: no such file or directory found\n", cmd->argv[0]);
@@ -172,6 +174,7 @@ void execute_other_commands(struct command_line *cmd)
         if (cmd->is_bg)     // For background process
         {
             printf("background pid is %d\n", spawn_pid);
+            bg_pids[bg_pid_count++] = spawn_pid;                // Stores bg process PID
             fflush(stdout);
         }
         else                // For foreground process
@@ -188,6 +191,17 @@ void execute_other_commands(struct command_line *cmd)
                 last_status = 1;        // Sets flag if terminated abnormally
             }
         }
+    }
+}
+
+
+// Function to help check for bg processes
+void check_bg_proc()
+{
+    for (int i=0; i<bg_pid_count; i++)
+    {
+        int status;
+        pid_t pid = waitpid(bg_pids[i], &status, WNOHANG);
     }
 }
 
