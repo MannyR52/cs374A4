@@ -126,6 +126,18 @@ void execute_other_commands(struct command_line *cmd)
             dup2(input_fd, 0);
             close(input_fd);
         }
+        else if (cmd->is_bg)        // bg, w/ no input file, redirects to /dev/null
+        {
+            int dev_null = open("/dev/null", O_RDONLY);
+            if (dev_null == -1)
+            {
+                perror("cannot open /dev/null for input");
+                exit(1);
+            }
+            dup2(dev_null, 0);
+            close(dev_null);
+        }
+        
 
         if (cmd->output_file)       // Output redirection
         {
@@ -138,6 +150,18 @@ void execute_other_commands(struct command_line *cmd)
             dup2(output_fd, 1);
             close(output_fd);
         }
+        else if (cmd->is_bg)        // bg w/ no output file, redirects to /dev/null
+        {
+            int dev_null = open("/dev/null", O_RDONLY);
+            if (dev_null == -1)
+            {
+                perror("cannot open /dev/null for output");
+                exit(1);
+            }
+            dup2(dev_null, 1);
+            close(dev_null);
+        }
+        
 
         execvp(cmd->argv[0], cmd->argv);        // Execute command
         fprintf(stderr, "%s: no such file or directory found\n", cmd->argv[0]);
