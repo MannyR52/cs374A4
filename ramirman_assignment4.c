@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #define INPUT_LENGTH 2048
 #define MAX_ARGS	 512
@@ -102,7 +103,69 @@ bool run_builtin(struct command_line *cmd)
     return false;       // Returns false for non-built-in commands
 }
 
+void execute_other_commands(struct command_line *cmd)
+{
+    pid_t spawn_pid = fork();
 
+    if (spawn_pid == -1)
+    {
+        perror("fork");
+        exit(1);
+    }
+
+    if (spawn_pid == 0)             // This is child process
+    {
+        if (cmd->input_file)        // Input redirection
+        {
+            int input_fd = open(cmd->input_file, O_RDONLY);
+            if (input_fd == -1)
+            {
+                fprintf(stderr, "cannot open %s for input\n", cmd->input_file);
+                exit(1);
+            }
+            dup2(input_fd, 0);
+            close(input_fd);
+        }
+
+        if (cmd->output_file)       // Output redirection
+        {
+            int output_fd = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (output_fd == -1)
+            {
+                fprintf(stderr, "cannot open %s for output\n", cmd->output_file);
+                exit(1);
+            }
+            dup2(output_fd, 1);
+            close(output_fd);
+        }
+
+        execvp(cmd->argv[0], cmd->argv);        // Execute command
+        fprintf(stderr, "%s: no such file or directory found\n", cmd->argv[0]);
+        exit(1);
+    }
+    else        // For parent process
+    {
+        if (cmd->is_bg)     // For background process
+        {
+            printf("background pid is %d\n", spawn_pid);
+            fflush(stdout);
+        }
+        else                // For foreground process
+        {
+            int child_status;
+            waitpid(spawn_pid, &child_status, 0);
+
+            if (WIFEXITED(child_status))
+            {
+                last_status = WEXITSTATUS(child_status);
+            }
+            else
+            {
+                last_status = 1;        // Sets flag if terminated abnormally
+            }
+        }
+    }
+}
 
 int main()
 {
