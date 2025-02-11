@@ -202,6 +202,18 @@ void check_bg_proc()
     {
         int status;
         pid_t pid = waitpid(bg_pids[i], &status, WNOHANG);
+
+        if (pid > 0)
+        {
+            if (WIFEXITED(status))
+            {
+                printf("background pid %d is done: exit value %d\n", pid, WEXITSTATUS(status));
+            }
+            else
+            {
+                printf("background pid %d is done: terminated by signal %d\n", pid, WTERMSIG(status));
+            }
+        }
     }
 }
 
@@ -219,10 +231,13 @@ int main()
             continue;
         }
 
+        check_bg_proc();
+
         // Runs built in commands
         if (!run_builtin(curr_command))
         {
             printf("Executing external command: %s\n", curr_command->argv[0]);
+            execute_other_commands(curr_command);
         }
 
         // For loop frees memory for parsed command
