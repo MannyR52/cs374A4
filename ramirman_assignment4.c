@@ -121,7 +121,7 @@ bool run_builtin(struct command_line *cmd)
     {
         for (int i=0; i<bg_pid_count; i++)
         {
-            kill(bg_pids[i], SIGTERM);          // Terminates bg processes
+            kill(bg_pids[i], SIGKILL);          // Terminates bg processes
         }
         exit(0);
     }
@@ -143,7 +143,7 @@ bool run_builtin(struct command_line *cmd)
         {
             printf("exit value %d\n", WEXITSTATUS(last_status));        // Prints if exited normally
         }
-        else
+        else if (WIFSIGNALED(last_status))
         {
             printf("terminated by signal %d\n", WTERMSIG(last_status));     // Prints signal if terminated by a signal
         }
