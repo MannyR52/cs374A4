@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #define INPUT_LENGTH 2048
 #define MAX_ARGS	 512
@@ -14,6 +15,8 @@ int last_status = 0;                // Variable to track last fg process status
 
 pid_t bg_pids[MAX_ARGS];            // Tracks background process PIDs
 int bg_pid_count = 0;
+
+bool allow_bg = true;               // Helps toggle bg execution
 
 // Structure holds parsed command info (from provided sample_parser code)
 struct command_line
@@ -216,6 +219,26 @@ void check_bg_proc()
         }
     }
 }
+
+
+// Signal handler for SIGSTP Crtl + Z
+void handle_SIGSTP(int signo)
+{
+    allow_bg = !allow_bg;
+
+    if (!allow_bg)
+    {
+        printf("\nEntering foreground-only mode (& is now ignored)\n");
+    }
+    else
+    {
+        printf("\nExiting foreground-only mode\n");
+    }
+    fflush(stdout);
+}
+
+
+//
 
 int main()
 {
