@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -6,7 +7,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-#include <signal.h>
+
 
 #define INPUT_LENGTH 2048
 #define MAX_ARGS	 512
@@ -27,6 +28,45 @@ struct command_line
 	char *output_file;              // for output redirection
 	bool is_bg;                     // flag for background processes
 };
+
+
+// Signal handler for SIGSTP Crtl + Z
+void handle_SIGSTP(int signo)
+{
+    allow_bg = !allow_bg;
+
+    if (!allow_bg)
+    {
+        printf("\nEntering foreground-only mode (& is now ignored)\n");
+
+        for (int i=0; i<bg_pid_count; i++)      // brings bg processes to fg
+        {
+            kill(bg_pids[i], SIGTSTP);
+            waitpid(bg_pids[i], &last_status, 0);
+        }
+        bg_pid_count = 0;
+    }
+    else
+    {
+        printf("\nExiting foreground-only mode\n");
+    }
+    fflush(stdout);
+}
+
+
+// Function to help with signal handlers
+void signal_handler_helper()
+{
+    struct sigaction SIGINT_action = {0};
+    SIGINT_action.sa_handler = SIG_IGN;
+    sigaction(SIGINT, &SIGINT_action, NULL);
+
+    struct sigaction SIGTSTP_action = {0};
+    SIGTSTP_action.sa_handler = handle_SIGSTP;
+    sigfillset(&SIGTSTP_action.sa_mask);
+    SIGTSTP_action.sa_flags = SA_RESTART;
+    sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+}
 
 
 // Function parses and reads user input (from provided sample_parser code)
@@ -79,6 +119,10 @@ bool run_builtin(struct command_line *cmd)
 
     if (strcmp(cmd->argv[0], "exit") == 0)      // Handles exit command, checks for "exit" input
     {
+        for (int i=0; i<bg_pid_count; i++)
+        {
+            kill(bg_pids[i], SIGTERM);          // Terminates bg processes
+        }
         exit(0);
     }
 
@@ -121,6 +165,13 @@ void execute_other_commands(struct command_line *cmd)
 
     if (spawn_pid == 0)             // This is child process
     {
+        if (!cmd->is_bg)
+        {
+            struct sigaction SIGINT_child = {0};
+            SIGINT_child.sa_handler = SIG_DFL;
+            sigaction(SIGINT, &SIGINT_child, NULL);
+        }
+        
         if (cmd->input_file)        // Input redirection
         {
             int input_fd = open(cmd->input_file, O_RDONLY);
@@ -201,6 +252,7 @@ void execute_other_commands(struct command_line *cmd)
 // Function to help check for bg processes
 void check_bg_proc()
 {
+    int i, new_count = 0;
     for (int i=0; i<bg_pid_count; i++)
     {
         int status;
@@ -217,32 +269,19 @@ void check_bg_proc()
                 printf("background pid %d is done: terminated by signal %d\n", pid, WTERMSIG(status));
             }
         }
+        else
+        {
+            bg_pids[new_count++] = bg_pids[i];      //Keeps active bacground PIDs
+        }
     }
+    bg_pid_count = new_count;       // Update count to reflect finished processes
 }
 
-
-// Signal handler for SIGSTP Crtl + Z
-void handle_SIGSTP(int signo)
-{
-    allow_bg = !allow_bg;
-
-    if (!allow_bg)
-    {
-        printf("\nEntering foreground-only mode (& is now ignored)\n");
-    }
-    else
-    {
-        printf("\nExiting foreground-only mode\n");
-    }
-    fflush(stdout);
-}
-
-
-//
 
 int main()
 {
-	struct command_line *curr_command;
+	signal_handler_helper();
+    struct command_line *curr_command;
 
 	while(true)
 	{
