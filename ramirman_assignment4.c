@@ -228,6 +228,11 @@ void execute_other_commands(struct command_line *cmd)
         else                // For foreground process
         {
             waitpid(spawn_pid, &last_status, 0);
+            if (WIFSIGNALED(last_status))
+            {
+                printf("terminated by signal %d\n", WTERMSIG(last_status));
+                flush(stdout);
+            }
         }
     }
 }
