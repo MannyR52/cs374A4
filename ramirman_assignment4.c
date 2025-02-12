@@ -43,6 +43,8 @@ void handle_SIGSTP(int signo)
         write(STDERR_FILENO, "\nExiting foreground-only mode\n", 30);
         allow_bg = true;
     }
+
+    fflush(stdout);
 }
 
 
