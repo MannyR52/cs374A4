@@ -231,7 +231,7 @@ void execute_other_commands(struct command_line *cmd)
             if (WIFSIGNALED(last_status))
             {
                 printf("terminated by signal %d\n", WTERMSIG(last_status));
-                flush(stdout);
+                fflush(stdout);
             }
         }
     }
