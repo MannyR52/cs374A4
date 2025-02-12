@@ -109,16 +109,16 @@ bool run_builtin(struct command_line *cmd)
         return false;
     }
 
-    if (strcmp(cmd->argv[0], "exit") == 0)      // Handles exit command, checks for "exit" input
+    if (!strcmp(cmd->argv[0], "exit"))      // Handles exit command, checks for "exit" input
     {
         for (int i=0; i<bg_pid_count; i++)
         {
-            kill(bg_pids[i], SIGKILL);          // Terminates bg processes
+            kill(bg_pids[i], SIGTERM);          // Terminates bg processes
         }
         exit(0);
     }
 
-    if (strcmp(cmd->argv[0], "cd") == 0)        // Executes cd command, checks for "cd" input
+    if (!strcmp(cmd->argv[0], "cd"))        // Executes cd command, checks for "cd" input
     {
         char *path = (cmd->argc > 1) ? cmd->argv[1] : getenv("HOME");       // Uses the given directory or goes to HOME if none input
         
@@ -129,13 +129,13 @@ bool run_builtin(struct command_line *cmd)
         return true;
     }
 
-    if (strcmp(cmd->argv[0], "status") == 0)        // Handles status command, checks for "status" input
+    if (!strcmp(cmd->argv[0], "status"))        // Handles status command, checks for "status" input
     {
         if (WIFEXITED(last_status))                 // Uses last_status which has last foreground process exit status 
         {
             printf("exit value %d\n", WEXITSTATUS(last_status));        // Prints if exited normally
         }
-        else if (WIFSIGNALED(last_status))
+        else
         {
             printf("terminated by signal %d\n", WTERMSIG(last_status));     // Prints signal if terminated by a signal
         }
