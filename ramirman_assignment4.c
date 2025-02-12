@@ -33,24 +33,16 @@ struct command_line
 // Signal handler for SIGSTP Crtl + Z
 void handle_SIGSTP(int signo)
 {
-    allow_bg = !allow_bg;
-
-    if (!allow_bg)
+    if (allow_bg)
     {
-        printf("\nEntering foreground-only mode (& is now ignored)\n");
-
-        for (int i=0; i<bg_pid_count; i++)      // brings bg processes to fg
-        {
-            kill(bg_pids[i], SIGTSTP);
-            waitpid(bg_pids[i], &last_status, 0);
-        }
-        bg_pid_count = 0;
+        write(STDOUT_FILENO, "\nEntering foreground-only mode (& is now ignored)\n", 51);
+        allow_bg = false;
     }
     else
     {
-        printf("\nExiting foreground-only mode\n");
+        write(STDERR_FILENO, "\nExiting foreground-only mode\n", 30);
+        allow_bg = true;
     }
-    fflush(stdout);
 }
 
 
