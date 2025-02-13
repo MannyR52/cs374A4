@@ -1,7 +1,7 @@
 # CS 374 Portfolio Assignment ( SMALLSH )
 SMALLSH Operating Systems Portfolio Project
 
-##Introduction
+## Introduction
 
 In this assignment you will write your own shell in C called smallsh. smallsh will implement a subset of features of well-known shells, such as bash. Your program will
 
@@ -13,7 +13,7 @@ In this assignment you will write your own shell in C called smallsh. smallsh wi
     Support running commands in foreground and background processes
     Implement custom handlers for 2 signals, SIGINT and SIGTSTP
 
-##Learning Outcomes
+## Learning Outcomes
 
 After successful completion of this assignment, you should be able to do the following
 
@@ -23,7 +23,7 @@ After successful completion of this assignment, you should be able to do the fol
     Write programs using the Linux API for signal handling (Module 7, MLO 3)
     Explain I/O redirection and write programs that can employ I/O redirection (Module 7, MLO 4)
 
-##Program Functionality
+## Program Functionality
 
 Be sure to read the complete assignment. The "Hints and Resources" section has useful tips on implementing various items of program functionality.
 1. The Command Prompt
