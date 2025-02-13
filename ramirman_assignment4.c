@@ -33,31 +33,33 @@ struct command_line
 // Signal handler for SIGSTP Crtl + Z
 void handle_SIGSTP(int signo)
 {
-    if (allow_bg)
+    if (allow_bg)           // If allow_bg true...
     {
-        write(STDOUT_FILENO, "\nEntering foreground-only mode (& is now ignored)\n", 51);
-        allow_bg = false;
+        write(STDOUT_FILENO, "\nEntering foreground-only mode (& is now ignored)\n", 51);       // msg + char written
+        allow_bg = false;   // Changes allow_bg to false after printing new status
     }
-    else
+    else                    // If allow_bg false...
     {
         write(STDERR_FILENO, "\nExiting foreground-only mode\n", 30);
-        allow_bg = true;
+        allow_bg = true;    // Changes back to true after printing status change
     }
-    fflush(stdout);
+    fflush(stdout);         // Displays buffered output if any
 }
 
 
 // Function to help with signal handlers
 void signal_handler_helper()
 {
+    // Handles CTRL + C
     struct sigaction SIGINT_action = {0};
-    SIGINT_action.sa_handler = SIG_IGN;
-    sigaction(SIGINT, &SIGINT_action, NULL);
+    SIGINT_action.sa_handler = SIG_IGN;         // Sets signal handler to ignore SIGINT
+    sigaction(SIGINT, &SIGINT_action, NULL);    // Registers new handler for SIGINT
 
+    // Handles CTRL + Z
     struct sigaction SIGTSTP_action = {0};
     SIGTSTP_action.sa_handler = handle_SIGSTP;
-    sigfillset(&SIGTSTP_action.sa_mask);
-    SIGTSTP_action.sa_flags = SA_RESTART;
+    sigfillset(&SIGTSTP_action.sa_mask);        // Blocks signals while handle_SIGSTP runs
+    SIGTSTP_action.sa_flags = SA_RESTART;       // Restarts any system calls that may have been interrupted
     sigaction(SIGTSTP, &SIGTSTP_action, NULL);
 }
 
@@ -105,12 +107,12 @@ struct command_line *parse_input()
 // Function to help run built-in commands
 bool run_builtin(struct command_line *cmd)
 {
-    if (cmd->argc == 0)     // Returns false if no command is input
+    if (cmd->argc == 0)                         // Returns false if no command is input
     {
         return false;
     }
 
-    if (!strcmp(cmd->argv[0], "exit"))      // Handles exit command, checks for "exit" input
+    if (!strcmp(cmd->argv[0], "exit"))          // Handles exit command, checks for "exit" input
     {
         for (int i=0; i<bg_pid_count; i++)
         {
@@ -119,22 +121,22 @@ bool run_builtin(struct command_line *cmd)
         exit(0);
     }
 
-    if (!strcmp(cmd->argv[0], "cd"))        // Executes cd command, checks for "cd" input
+    if (!strcmp(cmd->argv[0], "cd"))            // Executes cd command, checks for "cd" input
     {
         char *path = (cmd->argc > 1) ? cmd->argv[1] : getenv("HOME");       // Uses the given directory or goes to HOME if none input
         
-        if (chdir(path) != 0)       // Changes working directory
+        if (chdir(path) != 0)                   // Changes working directory
         {
-            perror("cd");           // prints error if fails
+            perror("cd");                       // prints error if fails
         }
         return true;
     }
 
-    if (!strcmp(cmd->argv[0], "status"))        // Handles status command, checks for "status" input
+    if (!strcmp(cmd->argv[0], "status"))                                    // Handles status command, checks for "status" input
     {
-        if (WIFEXITED(last_status))                 // Uses last_status which has last foreground process exit status 
+        if (WIFEXITED(last_status))                                         // Uses last_status which has last foreground process exit status 
         {
-            printf("exit value %d\n", WEXITSTATUS(last_status));        // Prints if exited normally
+            printf("exit value %d\n", WEXITSTATUS(last_status));            // Prints if exited normally
         }
         else
         {
@@ -143,14 +145,16 @@ bool run_builtin(struct command_line *cmd)
         fflush(stdout);
         return true;
     }
-    return false;       // Returns false for non-built-in commands
+    return false;                                                           // Returns false for non-built-in commands
 }
 
+
+// Function to help with running non-built-in commands, I/O redirection, and bg process info
 void execute_other_commands(struct command_line *cmd)
 {
-    pid_t spawn_pid = fork();
+    pid_t spawn_pid = fork();       // Create a new process
 
-    if (spawn_pid == -1)
+    if (spawn_pid == -1)            // Prints error if fork fails
     {
         perror("fork");
         exit(1);
@@ -158,22 +162,22 @@ void execute_other_commands(struct command_line *cmd)
 
     if (spawn_pid == 0)             // This is child process
     {
-        if (!cmd->is_bg)
+        if (!cmd->is_bg)                                // Signal handling for foreground process 
         {
-            struct sigaction SIGINT_child = {0};
-            SIGINT_child.sa_handler = SIG_DFL;
+            struct sigaction SIGINT_child = {0};        
+            SIGINT_child.sa_handler = SIG_DFL;          // If in FG, ctrl + c works as default
             sigaction(SIGINT, &SIGINT_child, NULL);
         }
         
         if (cmd->input_file)        // Input redirection
         {
-            int input_fd = open(cmd->input_file, O_RDONLY);
-            if (input_fd == -1)
+            int input_fd = open(cmd->input_file, O_RDONLY);         // File opend as read only
+            if (input_fd == -1)                                     // or error and exit if unable to open
             {
                 fprintf(stderr, "cannot open %s for input\n", cmd->input_file);
                 exit(1);
             }
-            dup2(input_fd, 0);
+            dup2(input_fd, 0);      // Redirects stdin to read from file (file descriptor 0)
             close(input_fd);
         }
         else if (cmd->is_bg)        // bg, w/ no input file, redirects to /dev/null
@@ -188,16 +192,16 @@ void execute_other_commands(struct command_line *cmd)
             close(dev_null);
         }
         
-
         if (cmd->output_file)       // Output redirection
         {
-            int output_fd = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            // Creates file if non existent, clears file if exists, permissions = owner can write and others can read
+            int output_fd = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);     
             if (output_fd == -1)
             {
                 fprintf(stderr, "cannot open %s for output\n", cmd->output_file);
                 exit(1);
             }
-            dup2(output_fd, 1);
+            dup2(output_fd, 1);     // Redirects stdout to file (file descriptor 1)
             close(output_fd);
         }
         else if (cmd->is_bg)        // bg w/ no output file, redirects to /dev/null
@@ -212,47 +216,48 @@ void execute_other_commands(struct command_line *cmd)
             close(dev_null);
         }
 
-        execvp(cmd->argv[0], cmd->argv);        // Execute command
+        // replaces child process with program by looking up in systems path and executing
+        execvp(cmd->argv[0], cmd->argv);
         fprintf(stderr, "%s: no such file or directory found\n", cmd->argv[0]);
         exit(1);
     }
-    else        // For parent process
+    else        // For parent process tracking fg or managing bg processes
     {
-        if (cmd->is_bg && allow_bg)     // For background process
+        if (cmd->is_bg && allow_bg)     // For background process & allowed exuction
         {
-            printf("background pid is %d\n", spawn_pid);
+            printf("background pid is %d\n", spawn_pid);        // prints PID
             fflush(stdout);
             bg_pids[bg_pid_count++] = spawn_pid;                // Stores bg process PID
         }
-        else                // For foreground process
+        else   // For foreground process
         {
-            waitpid(spawn_pid, &last_status, 0);
+            waitpid(spawn_pid, &last_status, 0);                // Waits for process in fg to complete
         }
     }
 }
 
 
-// Function to help check for bg processes
+// Function to help check for bg processes (called periodically)
 void check_bg_proc()
 {
-    int i, new_count = 0;
+    int i, new_count = 0;                   // Loop through tracked bg processes
     for (int i=0; i<bg_pid_count; i++)
     {
         int status;
-        pid_t pid = waitpid(bg_pids[i], &status, WNOHANG);
+        pid_t pid = waitpid(bg_pids[i], &status, WNOHANG);      // WNOHANG returns if process is still running, otherwise pid is set to child's PID
 
-        if (pid > 0)
+        if (pid > 0)                    // If bg process finished
         {
-            if (WIFEXITED(status))
+            if (WIFEXITED(status))      // Checks if normal exit
             {
                 printf("background pid %d is done: exit value %d\n", pid, WEXITSTATUS(status));
             }
-            else
+            else                        // Otherwise checks which signal ended the process
             {
                 printf("background pid %d is done: terminated by signal %d\n", pid, WTERMSIG(status));
             }
             fflush(stdout);
-            bg_pids[i] = bg_pids[--bg_pid_count];
+            bg_pids[i] = bg_pids[--bg_pid_count];       // Removes completed process from bg_pids
         }
     }
 }
@@ -260,16 +265,21 @@ void check_bg_proc()
 
 int main()
 {
-	signal_handler_helper();
+	// Call signal helper for CTRL +C/Z
+    signal_handler_helper();
+
+    // Command structure pointer - stores parsed input
     struct command_line *curr_command;
 
 	while(true)
 	{
-		check_bg_proc();
+		// Identifies completed bg processes
+        check_bg_proc();
         
+        // Read and parse unput
         curr_command = parse_input();
 
-        // Continues to next prompt if command is NULL
+        // Skips execution and re-prompts if NULL
         if (!curr_command)              
         {
             continue;
@@ -282,7 +292,7 @@ int main()
             execute_other_commands(curr_command);
         }
 
-        // For loop frees memory for parsed command
+        // For loop frees memory for parsed commands and I/O redirection strings
         for (int i=0; i<curr_command->argc; i++)
         {
             free(curr_command->argv[i]);
