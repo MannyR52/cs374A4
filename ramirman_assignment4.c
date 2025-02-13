@@ -43,6 +43,7 @@ void handle_SIGSTP(int signo)
         write(STDERR_FILENO, "\nExiting foreground-only mode\n", 30);
         allow_bg = true;
     }
+    fflush(stdout);
 }
 
 
@@ -217,7 +218,7 @@ void execute_other_commands(struct command_line *cmd)
     }
     else        // For parent process
     {
-        if (cmd->is_bg)     // For background process
+        if (cmd->is_bg && allow_bg)     // For background process
         {
             printf("background pid is %d\n", spawn_pid);
             fflush(stdout);
