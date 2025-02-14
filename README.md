@@ -134,3 +134,7 @@ A CTRL-Z command from the keyboard sends a SIGTSTP signal to your parent shell p
         Display another informative message (see below) immediately after any currently running foreground process terminates
         The shell then returns back to the normal condition where the & operator is once again honored for subsequent commands, allowing them to be executed in the background.
    
+### Running the program
+
+- Compile using the following: gcc --std=gnu99 -o smallsh ramirman_assignment4.c
+- Run in terminal using ./smallsh
